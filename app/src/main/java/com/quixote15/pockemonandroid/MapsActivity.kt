@@ -1,12 +1,18 @@
 package com.quixote15.pockemonandroid
 
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.widget.Toast
+import androidx.core.app.ActivityCompat
 
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.BitmapDescriptor
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 
@@ -21,6 +27,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
+
+        checkPermission()
     }
 
     /**
@@ -36,8 +44,49 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mMap = googleMap
 
         // Add a marker in Sydney and move the camera
-        val sydney = LatLng(-34.0, 151.0)
-        mMap.addMarker(MarkerOptions().position(sydney).title("Marker in Sydney"))
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney))
+        val sydney = LatLng(-10.91111, -37.07167)
+        mMap.addMarker(
+            MarkerOptions().position(sydney)
+            .title("Marker in Sydney")
+            .snippet("me") // description
+            .icon(BitmapDescriptorFactory.fromResource(R.drawable.mario)) // icon of the marker
+        )
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(sydney, 14f)) //move camera and zoom it - ranging from 1-24
+    }
+
+    var ACCESSLOCATION = 123
+    fun checkPermission(){
+        if(Build.VERSION.SDK_INT >= 23) {
+            if(ActivityCompat
+                    .checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+                requestPermissions(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),ACCESSLOCATION)
+            }
+        }
+
+        getUserLocation()
+    }
+
+    fun getUserLocation(){
+        Toast.makeText(this,"User location access on ", Toast.LENGTH_LONG).show()
+        //TODO: later
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        when(requestCode){
+            ACCESSLOCATION -> {
+                if(grantResults[0] == PackageManager.PERMISSION_GRANTED){
+                    getUserLocation()
+                }else{
+                    Toast.makeText(this, "User did not granted access", Toast.LENGTH_LONG)
+                }
+            }
+        }
     }
 }
+
