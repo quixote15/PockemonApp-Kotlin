@@ -1,9 +1,15 @@
 package com.quixote15.pockemonandroid
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 
@@ -29,6 +35,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mapFragment.getMapAsync(this)
 
         checkPermission()
+
+        loadPockemon()
     }
 
     /**
@@ -58,17 +66,40 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     fun checkPermission(){
         if(Build.VERSION.SDK_INT >= 23) {
             if(ActivityCompat
-                    .checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
-                requestPermissions(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),ACCESSLOCATION)
+                    .checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                return requestPermissions(
+                    arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
+                    ACCESSLOCATION
+                )
             }
-        }
 
+
+        }
         getUserLocation()
+
     }
 
+    @SuppressLint("MissingPermission")
     fun getUserLocation(){
         Toast.makeText(this,"User location access on ", Toast.LENGTH_LONG).show()
         //TODO: later
+        var myLocation = MyLocationListener()
+
+        // Acquire a reference to the system Location Manager
+        var locationManager=getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+        // Get the location from gps every at 3 min minimum and 3 feet distance minimum
+        // give the location to myLocation Listeer
+        //https://stackoverflow.com/questions/9007600/onlocationchanged-callback-is-never-called
+        // Gps Provider will disable when device is low in batery or in power save mode
+        // GPS Provider will hardly ever return the location if someone is inside a house or building. Why ? I dont know yet
+        // in this case, the Network Location Provider for cell tower and Wi-Fi based location
+        // You can also request location updates from both the GPS and the Network Location Provider
+        // by calling requestLocationUpdates() twice—once for NETWORK_PROVIDER and once for GPS_PROVIDER.
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,3,1f,myLocation)
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,3,1f,myLocation)
+       // var mythread = myThead()
+       // mythread.start()
     }
 
     override fun onRequestPermissionsResult(
@@ -88,5 +119,116 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }
     }
+
+    var location:Location?=null //nullable variable
+    inner class MyLocationListener:LocationListener{
+
+
+        constructor(){
+            location=Location("Start")
+            location!!.longitude=0.0
+            location!!.latitude=0.0
+        }
+        override fun onLocationChanged(current: Location?) {
+            location = current
+
+            val sydney = LatLng(location!!.latitude, location!!.longitude)
+            mMap.clear() // always clear the map, to get ride of previous obsolete locations
+            mMap.addMarker(
+                MarkerOptions().position(sydney)
+                    .title("Marker in Sydney")
+                    .snippet("me") // description
+                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.mario)) // icon of the marker
+            )
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(sydney, 20f)) //move camera and zoom it - ranging from 1-24
+           // TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+
+
+            for(i in 0..listPockemon.size-1){
+                var newPockemon = listPockemon[i];
+                if(newPockemon.isCatch==false) {
+                    val pockemonPos = LatLng(newPockemon.lat!!, newPockemon.log!!)
+                    mMap.addMarker(
+                        MarkerOptions()
+                            .position(pockemonPos)
+                            .title(newPockemon.name!!)
+                            .snippet(newPockemon.des!!)
+                            .icon(BitmapDescriptorFactory.fromResource(newPockemon.image!!))
+                    )
+                }
+
+            }
+
+        }
+
+        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        /**
+         * Fired when the user turns the gps on
+         */
+        override fun onProviderEnabled(provider: String?) {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        /**
+         * Fired when the user turns the gps off
+         */
+        override fun onProviderDisabled(provider: String?) {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+    }
+
+    inner class myThead:Thread {
+        constructor():super(){
+
+        }
+
+        override fun run(){
+            while(true){
+                try {
+                    runOnUiThread{
+                        val sydney = LatLng(location!!.latitude, location!!.longitude)
+                        mMap.clear() // always clear the map, to get ride of previous obsolete locations
+                        mMap.addMarker(
+                            MarkerOptions().position(sydney)
+                                .title("Marker in Sydney")
+                                .snippet("me") // description
+                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.mario)) // icon of the marker
+                        )
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(sydney, 14f)) //move camera and zoom it - ranging from 1-24
+                        Thread.sleep(9000)
+                    }
+                }catch (ex:Exception){
+
+                }
+            }
+        }
+    }
+
+    lateinit  var listPockemon:ArrayList<Pockemon>
+
+
+    fun loadPockemon(){
+        listPockemon =  ArrayList()
+
+        try {
+        listPockemon.add(Pockemon(R.drawable.charmander,
+            "Charmander", "Charmander is the best", 55.0,-10.9099722,-37.1011498))
+        listPockemon.add(Pockemon(R.drawable.bulbasaur,
+            "Balbasaur", "He can do what other cannot", 505.0,-10.9239667,-37.1046242))
+        listPockemon.add(Pockemon(R.drawable.squirtle,
+            "Squirtle", "Lets Squirtle and roll!!", 55.0,-10.9239667,-37.103256))
+        }catch(ex:Exception) {
+        Log.v("Pockemon", ex.message)
+        }
+
+
+    }
+
+
+
 }
 
