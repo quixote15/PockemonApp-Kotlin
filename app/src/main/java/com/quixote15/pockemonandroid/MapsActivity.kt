@@ -51,18 +51,22 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
 
+
         // Add a marker in Sydney and move the camera
-        val sydney = LatLng(-10.91111, -37.07167)
+        val sydney = LatLng(location!!.latitude, location!!.longitude)
+
         mMap.addMarker(
             MarkerOptions().position(sydney)
             .title("Marker in Sydney")
             .snippet("me") // description
             .icon(BitmapDescriptorFactory.fromResource(R.drawable.mario)) // icon of the marker
         )
+
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(sydney, 14f)) //move camera and zoom it - ranging from 1-24
     }
 
     var ACCESSLOCATION = 123
+    var playerPower = 0.0
     fun checkPermission(){
         if(Build.VERSION.SDK_INT >= 23) {
             if(ActivityCompat
@@ -88,6 +92,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         // Acquire a reference to the system Location Manager
         var locationManager=getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
+        location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+        oldLocation = location
         // Get the location from gps every at 3 min minimum and 3 feet distance minimum
         // give the location to myLocation Listeer
         //https://stackoverflow.com/questions/9007600/onlocationchanged-callback-is-never-called
@@ -99,7 +105,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,3,1f,myLocation)
         locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,3,1f,myLocation)
        // var mythread = myThead()
-       // mythread.start()
+        //mythread.start()
     }
 
     override fun onRequestPermissionsResult(
@@ -121,6 +127,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     var location:Location?=null //nullable variable
+    var oldLocation:Location?=null //nullable variable
+    var pockemonsInitialized = false
     inner class MyLocationListener:LocationListener{
 
 
@@ -128,55 +136,71 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             location=Location("Start")
             location!!.longitude=0.0
             location!!.latitude=0.0
+            oldLocation = location
         }
         override fun onLocationChanged(current: Location?) {
+            oldLocation = location
             location = current
 
-            val sydney = LatLng(location!!.latitude, location!!.longitude)
-            mMap.clear() // always clear the map, to get ride of previous obsolete locations
-            mMap.addMarker(
-                MarkerOptions().position(sydney)
-                    .title("Marker in Sydney")
-                    .snippet("me") // description
-                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.mario)) // icon of the marker
-            )
-            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(sydney, 20f)) //move camera and zoom it - ranging from 1-24
-           // TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+            if(location!!.latitude != oldLocation!!.latitude || location!!.longitude != oldLocation!!.longitude){
+                val sydney = LatLng(location!!.latitude, location!!.longitude)
+                mMap.clear() // always clear the map, to get ride of previous obsolete locations
+                mMap.addMarker(
+                    MarkerOptions().position(sydney)
+                        .title("Eu aqui")
+                        .snippet("me") // description
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.mario)) // icon of the marker
+                )
+               // mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(sydney, 20f)) //move camera and zoom it - ranging from 1-24
+                // TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
 
+            }
 
             for(i in 0..listPockemon.size-1){
                 var newPockemon = listPockemon[i];
                 if(newPockemon.isCatch==false) {
-                    val pockemonPos = LatLng(newPockemon.lat!!, newPockemon.log!!)
+                    val pockemonPos = LatLng(newPockemon.location!!.latitude, newPockemon.location!!.longitude)
                     mMap.addMarker(
                         MarkerOptions()
                             .position(pockemonPos)
                             .title(newPockemon.name!!)
-                            .snippet(newPockemon.des!!)
+                            .snippet(newPockemon.des!! + " power: " + newPockemon.power)
                             .icon(BitmapDescriptorFactory.fromResource(newPockemon.image!!))
-                    )
+                        )
+
+                    if(location!!.distanceTo(newPockemon.location) < 2) {
+                        newPockemon.isCatch = true
+                        listPockemon[i] = newPockemon
+                        playerPower += newPockemon.power!!
+                        Toast.makeText(applicationContext, "VocÊ capturou um novo pockemon!! Seu nível de poder agora é: " + playerPower, Toast.LENGTH_LONG).show()
+                    }
                 }
 
-            }
+                }
+
+
+
+
+
 
         }
 
         override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+           // TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
         /**
          * Fired when the user turns the gps on
          */
         override fun onProviderEnabled(provider: String?) {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+          //  TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
         /**
          * Fired when the user turns the gps off
          */
         override fun onProviderDisabled(provider: String?) {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        //    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
     }
@@ -190,16 +214,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             while(true){
                 try {
                     runOnUiThread{
-                        val sydney = LatLng(location!!.latitude, location!!.longitude)
-                        mMap.clear() // always clear the map, to get ride of previous obsolete locations
-                        mMap.addMarker(
-                            MarkerOptions().position(sydney)
-                                .title("Marker in Sydney")
-                                .snippet("me") // description
-                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.mario)) // icon of the marker
-                        )
-                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(sydney, 14f)) //move camera and zoom it - ranging from 1-24
-                        Thread.sleep(9000)
+
+
+                        Thread.sleep(1000)
                     }
                 }catch (ex:Exception){
 
@@ -216,7 +233,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         try {
         listPockemon.add(Pockemon(R.drawable.charmander,
-            "Charmander", "Charmander is the best", 55.0,-10.9099722,-37.1011498))
+            "Charmander", "Charmander is the best", 55.0,-10.9226306,-37.103788))
         listPockemon.add(Pockemon(R.drawable.bulbasaur,
             "Balbasaur", "He can do what other cannot", 505.0,-10.9239667,-37.1046242))
         listPockemon.add(Pockemon(R.drawable.squirtle,
